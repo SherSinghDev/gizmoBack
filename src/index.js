@@ -13,16 +13,17 @@ db()
 
 // middlewares
 app.use(express.json())
-app.use(express.urlencoded({extended:false}))
+app.use(express.urlencoded({ extended: false }))
 app.use(cors({
-    origin:['http://localhost:8081']
+    // origin:['http://localhost:8081']
+    origin: "*", credentials: true
 }))
 app.use(express.static('./assets'))
 
 
 // routes
-app.get('/',(req,res)=>{
-    res.json({message:"Backend Working"})
+app.get('/', (req, res) => {
+    res.json({ message: "Backend Working" })
 })
 
 
@@ -33,6 +34,6 @@ app.use("/orders", ordersControllers);
 
 
 // listening
-app.listen(3200,"0.0.0.0",()=>{
+app.listen(3200, "0.0.0.0", () => {
     console.log("Listening to http://localhost:3200");
 })
