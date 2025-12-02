@@ -43,7 +43,7 @@ router.post("/send-otp", async (req, res) => {
         // }
 
         console.log("Generated OTP:", otp,); // For debugging
-        res.status(200).json({ success: true, message: "OTP sent successfully" });
+        res.status(200).json({ success: true, otp, message: "OTP sent successfully" });
 
     } catch (err) {
         console.log(err);
@@ -177,9 +177,9 @@ router.post("/resend-otp", async (req, res) => {
 auth = (roles = []) => {
     return (req, res, next) => {
         try {
-            
+
             const token = req.headers.authorization?.split(" ")[1];
-            
+
             // console.log(token);
             if (!token)
                 return res.status(401).json({ message: "Unauthorized: No token" });
@@ -206,7 +206,7 @@ router.post("/set-role", auth(), async (req, res) => {
 
     const user = await User.findById(req.user.id);
     // console.log(user);
-    
+
     if (!user.roles.includes(activeRole)) {
         user.roles.push(activeRole)
     }
