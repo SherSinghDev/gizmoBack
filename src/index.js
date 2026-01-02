@@ -6,6 +6,16 @@ let authControllers = require('./controllers/auth')
 let productControllers = require('./controllers/products')
 let usersControllers = require('./controllers/users')
 let ordersControllers = require('./controllers/orders')
+let returnControllers = require('./controllers/returns')
+let reviewsControllers = require('./controllers/reviews')
+let transactionControllers = require('./controllers/transactions')
+let paymentControllers = require('./controllers/payments')
+let searchControllers = require('./controllers/search')
+let notificationsControllers = require('./controllers/notifications')
+let verificationControllers = require('./controllers/verification')
+let chatControllers = require('./controllers/chat')
+let analyticControllers = require('./controllers/analytics')
+let shiprocketControllers = require('./controllers/shiprocket')
 
 
 // database connection
@@ -31,6 +41,17 @@ app.use("/api/auth", authControllers);
 app.use("/products", productControllers);
 app.use("/users", usersControllers);
 app.use("/orders", ordersControllers);
+app.use("/returns", returnControllers);
+app.use("/reviews", reviewsControllers);
+app.use("/reviews", reviewsControllers);
+app.use("/billing", transactionControllers);
+app.use("/payment", paymentControllers);
+app.use("/search", searchControllers);
+app.use("/notifications", notificationsControllers);
+app.use("/verification", verificationControllers);
+app.use("/chat", chatControllers);
+app.use("/analytic", analyticControllers);
+app.use("/shiprocket", shiprocketControllers);
 
 
 // listening

@@ -124,14 +124,6 @@ let mongoose = require('mongoose')
 const KYCDocumentSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: [
-            "pan",
-            "aadhaar_front",
-            "aadhaar_back",
-            "business_proof",
-            "address_proof",
-        ],
-        // required: true,
     },
     uri: { type: String },
     uploadedAt: { type: String },
@@ -152,6 +144,7 @@ const KYCDataSchema = new mongoose.Schema({
     accountHolderName: String,
     gstNumber: String,
     submittedAt: String,
+    ekycResponse: Object
 });
 
 const VendorDetailsSchema = new mongoose.Schema({
@@ -231,7 +224,7 @@ const UserSchema = new mongoose.Schema(
         // KYC
         kycStatus: {
             type: String,
-            enum: ["not_submitted", "pending", "approved", "rejected"],
+            // enum: ["not_submitted", "pending", "approved", "rejected"],
             default: "not_submitted",
         },
         kycSubmittedAt: String,
@@ -244,6 +237,11 @@ const UserSchema = new mongoose.Schema(
         bio: String,
         photoUrl: String,
         socialLinks: SocialLinksSchema,
+        isActive: {
+            type: Boolean,
+            // enum: ["not_submitted", "pending", "approved", "rejected"],
+            default: false,
+        },
 
         // Metadata
         memberSince: { type: String },

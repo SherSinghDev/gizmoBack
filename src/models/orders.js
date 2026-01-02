@@ -1,12 +1,14 @@
 let mongoose = require("mongoose");
 
 const ShippingDetailsSchema = new mongoose.Schema({
+    shipmentId: String,
     courierPartner: String,
     trackingNumber: String,
     estimatedDelivery: String,
     shippedAt: String,
     trackingUrl: String,
-    deliveredAt: Date
+    deliveredAt: Date,
+    weight: Number,
 });
 
 const OrderNoteSchema = new mongoose.Schema({
@@ -56,7 +58,7 @@ const OrderSchema = new mongoose.Schema(
         productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
         buyerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        
+
 
         amount: { type: Number, required: true },
 
@@ -73,6 +75,7 @@ const OrderSchema = new mongoose.Schema(
 
         productDetails: ProductDetailsSchema,
         buyerInfo: BuyerInfoSchema,
+        returnShipment: Object,
 
         shippingDetails: ShippingDetailsSchema,
         taxDetails: TaxDetailsSchema,
