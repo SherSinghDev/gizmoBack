@@ -11,6 +11,14 @@ const jwt = require("jsonwebtoken");
 let dotenv = require("dotenv");
 const mongoose = require("mongoose");
 dotenv.config()
+const Razorpay = require("razorpay");
+
+
+
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 
 
@@ -442,20 +450,83 @@ router.get('/admin/billing/payouts', auth(), adminOnly, async (req, res) => {
 });
 
 
+// router.post('/admin/billing/payouts/:id/approve', auth(), adminOnly, async (req, res) => {
+//     const { utrNumber } = req.body;
+
+//     if (!utrNumber) {
+//         return res.status(400).json({ message: 'UTR required' });
+//     }
+
+//     await Payout.findByIdAndUpdate(req.params.id, {
+//         status: 'completed',
+//         utrNumber,
+//         completedAt: new Date().toISOString(),
+//     });
+
+//     res.json({ success: true });
+// });
+
+
+
 router.post('/admin/billing/payouts/:id/approve', auth(), adminOnly, async (req, res) => {
-    const { utrNumber } = req.body;
+    try {
+        let payoutId = req.params.id
+        const { utrNumber } = req.body;
 
-    if (!utrNumber) {
-        return res.status(400).json({ message: 'UTR required' });
+        // 1️⃣ Validate admin
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, message: "Unauthorized" });
+        }
+
+        // 2️⃣ Fetch payout from DB
+        const payout = await Payout.findById(payoutId).populate("seller");
+
+        if (!payout || payout.status !== "pending") {
+            return res.status(400).json({ success: false, message: "Invalid payout" });
+        }
+
+        const seller = payout.seller;
+
+        if (!seller.razorpayFundAccountId) {
+            return res.status(400).json({ success: false, message: "Seller bank not verified" });
+        }
+
+        // 3️⃣ Create Razorpay payout
+        const razorpayPayout = await razorpay.payouts.create({
+            // account_number: process.env.RAZORPAY_ACCOUNT_NUMBER!,
+            account_number: '987r5983tu8u4',
+            fund_account_id: seller.razorpayFundAccountId,
+            amount: payout.amount * 100, // paise
+            currency: "INR",
+            mode: "IMPS",
+            purpose: "payout",
+            queue_if_low_balance: true,
+            reference_id: payout._id.toString(),
+            narration: `Payout for order ${payout.orderId}`,
+        });
+
+        // 4️⃣ Update DB ONLY after success
+        payout.status = "approved";
+        payout.utrNumber = utr;
+        payout.razorpayPayoutId = razorpayPayout.id;
+        payout.processedAt = new Date();
+        await payout.save();
+        console.log(razorpayPayout);
+        
+
+        return res.json({
+            success: true,
+            message: "Payout processed successfully",
+            razorpayPayout,
+        });
+
+    } catch (error) {
+        console.error("Payout error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Payout failed",
+        });
     }
-
-    await Payout.findByIdAndUpdate(req.params.id, {
-        status: 'completed',
-        utrNumber,
-        completedAt: new Date().toISOString(),
-    });
-
-    res.json({ success: true });
 });
 
 

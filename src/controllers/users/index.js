@@ -6,6 +6,14 @@ let dayjs = require('dayjs')
 const multer = require("multer");
 let dotenv = require("dotenv")
 dotenv.config()
+const Razorpay = require("razorpay");
+
+
+
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 auth = (roles = []) => {
     return (req, res, next) => {
@@ -634,11 +642,11 @@ const quickEkycFetch = async (endpoint, payload) => {
         body: JSON.stringify(payload),
     });
 
-    console.log(response);
+    // console.log(response);
 
 
     const data = await response.json();
-    console.log(data);
+    // console.log(data);
 
     if (!response.ok) {
         throw new Error(
@@ -649,18 +657,18 @@ const quickEkycFetch = async (endpoint, payload) => {
     return data;
 };
 
-const IS_MOCK = process.env.MOCK_EKYC === "true";
+const IS_MOCK = false;
 
 /* ---------------- PAN ---------------- */
 const verifyPAN = async (panNumber, fullName) => {
-    if (IS_MOCK) {
-        return {
-            status: "VALID",
-            pan: panNumber,
-            name: fullName,
-            message: "Mock PAN verified",
-        };
-    }
+    // if (IS_MOCK) {
+    //     return {
+    //         status: "VALID",
+    //         pan: panNumber,
+    //         name: fullName,
+    //         message: "Mock PAN verified",
+    //     };
+    // }
 
     return quickEkycFetch("/pan/pan", {
         key: QUICK_EKYC_API_KEY,
@@ -669,21 +677,12 @@ const verifyPAN = async (panNumber, fullName) => {
 };
 
 /* ---------------- Aadhaar ---------------- */
-const verifyAadhaar = async (aadhaarNumber) => {
-    if (IS_MOCK) {
-        return {
-            status: "OTP_SENT",
-            aadhaar: `XXXX-XXXX-${aadhaarNumber.slice(-4)}`,
-            message: "Mock Aadhaar OTP sent",
-            request_id: "mock_aadhaar_req_123",
-        };
-    }
-
-    return quickEkycFetch("/aadhaar/aadhaar-validation", {
-        key: QUICK_EKYC_API_KEY,
-        id_number: aadhaarNumber,
-    });
-};
+// const verifyAadhaar = async (aadhaarNumber) => {
+//     return quickEkycFetch("/aadhaar-v2/generate-otp", {
+//         key: QUICK_EKYC_API_KEY,
+//         id_number: aadhaarNumber,
+//     });
+// };
 
 /* ---------------- Bank ---------------- */
 const verifyBank = async (accountNumber, ifsc) => {
@@ -758,7 +757,112 @@ const verifyGST = async (gstNumber) => {
 //     });
 // };
 
+/* ---------------- Aadhaar ---------------- */
+const verifyAadhaar = async (aadhaarNumber) => {
+    return quickEkycFetch("/aadhaar-v2/generate-otp", {
+        key: QUICK_EKYC_API_KEY,
+        id_number: aadhaarNumber,
+    });
+};
 
+// router.post(
+//     "/submit-kyc",
+//     upload1.array("documents"),
+//     async (req, res) => {
+//         try {
+//             const {
+//                 fullName,
+//                 businessName,
+//                 panNumber,
+//                 aadhaarNumber,
+//                 businessAddress,
+//                 city,
+//                 state,
+//                 pincode,
+//                 bankAccountNumber,
+//                 ifscCode,
+//                 accountHolderName,
+//                 gstNumber,
+//                 submittedAt,
+//                 userId,
+//                 documentTypes,
+//             } = req.body;
+
+//             const files = req.files || [];
+
+//             // Map documents
+//             const documents = files.map((file, index) => ({
+//                 type: Array.isArray(documentTypes)
+//                     ? documentTypes[index]
+//                     : documentTypes,
+//                 uri: `/assets/uploads/kyc/${file.filename}`,
+//                 uploadedAt: new Date(),
+//             }));
+
+//             // 🔍 Call Quick eKYC APIs
+//             const [panResult, aadharResult, bankResult, gstResult] = await Promise.all([
+//                 panNumber ? verifyPAN(panNumber, fullName) : null,
+//                 aadhaarNumber ? verifyAadhaar(aadhaarNumber) : null,
+//                 bankAccountNumber && ifscCode
+//                     ? verifyBank(bankAccountNumber, ifscCode)
+//                     : null,
+//                 gstNumber ? verifyGST(gstNumber) : null,
+//             ]);
+
+//             console.log(panResult, aadharResult, bankResult, gstResult);
+
+
+//             // Decide KYC status
+//             const isVerified =
+//                 panResult?.status === "VALID" &&
+//                 bankResult?.status === "VALID";
+
+//             const kycRecord = {
+//                 fullName,
+//                 businessName,
+//                 panNumber,
+//                 aadhaarNumber,
+//                 businessAddress,
+//                 city,
+//                 state,
+//                 pincode,
+//                 documents,
+//                 bankAccountNumber,
+//                 ifscCode,
+//                 accountHolderName,
+//                 gstNumber,
+//                 submittedAt,
+//                 status: isVerified ? "approved" : "pending",
+//                 ekycResponse: {
+//                     pan: panResult,
+//                     bank: bankResult,
+//                     gst: gstResult,
+//                 },
+//             };
+
+//             const updatedUser = await users.findByIdAndUpdate(
+//                 userId,
+//                 {
+//                     kycData: kycRecord,
+//                     kycStatus: kycRecord.status,
+//                 },
+//                 { new: true }
+//             );
+
+//             return res.json({
+//                 message: "KYC submitted successfully",
+//                 status: kycRecord.status,
+//                 user: updatedUser,
+//             });
+//         } catch (err) {
+//             console.error("KYC Error:", err);
+//             return res.status(500).json({
+//                 message: "KYC submission failed",
+//                 error: err.message,
+//             });
+//         }
+//     }
+// );
 
 router.post(
     "/submit-kyc",
@@ -783,9 +887,22 @@ router.post(
                 documentTypes,
             } = req.body;
 
+            const user = await users.findById(userId);
+
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            // 🔐 Aadhaar MUST be verified already
+            // if (!user.kycData?.aadhaarVerified) {
+            //     return res.status(400).json({
+            //         message: "Aadhaar not verified. Please complete OTP verification.",
+            //     });
+            // }
+
             const files = req.files || [];
 
-            // Map documents
+            // 📎 Map uploaded documents
             const documents = files.map((file, index) => ({
                 type: Array.isArray(documentTypes)
                     ? documentTypes[index]
@@ -794,7 +911,7 @@ router.post(
                 uploadedAt: new Date(),
             }));
 
-            // 🔍 Call Quick eKYC APIs
+            // 🔍 Call PAN / Bank / GST APIs
             const [panResult, bankResult, gstResult] = await Promise.all([
                 panNumber ? verifyPAN(panNumber, fullName) : null,
                 bankAccountNumber && ifscCode
@@ -803,13 +920,62 @@ router.post(
                 gstNumber ? verifyGST(gstNumber) : null,
             ]);
 
-            console.log(panResult,bankResult,gstResult);
-            
+            /* ---------------- Normalize Responses ---------------- */
 
-            // Decide KYC status
-            const isVerified =
-                panResult?.status === "VALID" &&
-                bankResult?.status === "VALID";
+            console.log(panResult, bankResult, gstResult);
+
+
+            const panVerified =
+                panResult?.status === "success" &&
+                panResult?.data?.pan_number === panNumber;
+
+            const bankVerified =
+                bankResult?.status === "success" &&
+                bankResult?.data?.account_exists === true;
+
+            const gstVerified =
+                !gstNumber ||
+                gstResult?.status === "ACTIVE" ||
+                gstResult?.status === "success";
+
+            /* ---------------- Final KYC Decision ---------------- */
+
+            // const isApproved = panVerified && bankVerified && user.kycData.aadhaarVerified;
+            const isApproved = panVerified;
+
+            /* ---------------- Razorpay Onboarding ---------------- */
+
+            let razorpayContactId = user.razorpayContactId;
+            let razorpayFundAccountId = user.razorpayFundAccountId;
+
+            console.log('Razorpay', razorpay);
+
+            if (isApproved && !razorpayFundAccountId) {
+                // 1️⃣ Create Contact
+                const contact = await razorpay.contacts.create({
+                    name: fullName,
+                    email: user.email,
+                    contact: user.phone,
+                    type: "vendor",
+                    reference_id: user._id.toString(),
+                });
+
+                // 2️⃣ Create Fund Account (Bank)
+                const fundAccount = await razorpay.fundAccount.create({
+                    contact_id: contact.id,
+                    account_type: "bank_account",
+                    bank_account: {
+                        name: accountHolderName,
+                        ifsc: ifscCode,
+                        account_number: bankAccountNumber,
+                    },
+                });
+
+                razorpayContactId = contact.id;
+                razorpayFundAccountId = fundAccount.id;
+            }
+
+            /* ---------------- Save KYC ---------------- */
 
             const kycRecord = {
                 fullName,
@@ -826,7 +992,7 @@ router.post(
                 accountHolderName,
                 gstNumber,
                 submittedAt,
-                status: isVerified ? "approved" : "pending",
+                status: isApproved ? "approved" : "pending",
                 ekycResponse: {
                     pan: panResult,
                     bank: bankResult,
@@ -839,9 +1005,13 @@ router.post(
                 {
                     kycData: kycRecord,
                     kycStatus: kycRecord.status,
+                    razorpayContactId,
+                    razorpayFundAccountId,
                 },
                 { new: true }
             );
+
+
 
             return res.json({
                 message: "KYC submitted successfully",
@@ -857,6 +1027,78 @@ router.post(
         }
     }
 );
+
+
+
+const generateAadhaarOtp = async (aadhaarNumber) => {
+    return quickEkycFetch("/aadhaar-v2/generate-otp", {
+        key: QUICK_EKYC_API_KEY,
+        id_number: aadhaarNumber,
+    });
+};
+
+
+router.post("/aadhaar/send-otp", async (req, res) => {
+    try {
+        const { aadhaarNumber } = req.body;
+
+        const response = await generateAadhaarOtp(aadhaarNumber);
+        console.log(response);
+
+
+        if (response.status !== "success") {
+            return res.status(400).json(response);
+        }
+
+        return res.json({
+            message: "OTP sent successfully",
+            requestId: response.request_id,
+        });
+    } catch (err) {
+        console.error("Aadhaar OTP Error:", err);
+        return res.status(500).json({ message: err.message });
+    }
+});
+
+
+const verifyAadhaarOtp = async (requestId, otp) => {
+    return quickEkycFetch("/aadhaar-v2/submit-otp", {
+        key: QUICK_EKYC_API_KEY,
+        request_id: requestId,
+        otp,
+    });
+};
+
+
+router.post("/aadhaar/verify-otp", async (req, res) => {
+    try {
+        const { requestId, otp, userId } = req.body;
+
+        const response = await verifyAadhaarOtp(requestId, otp);
+        console.log(response);
+
+
+        // if (response.status !== "success") {
+        //     return res.status(400).json(response);
+        // }
+
+        // // ✅ Mark Aadhaar verified in DB
+        // await users.findByIdAndUpdate(userId, {
+        //     "kycData.aadhaarVerified": true,
+        //     "kycData.aadhaarData": response.data,
+        // });
+
+        return res.json({
+            message: "Aadhaar verified successfully",
+            data: response.data,
+        });
+    } catch (err) {
+        console.error("Aadhaar OTP Verify Error:", err);
+        return res.status(500).json({ message: err.message });
+    }
+});
+
+
 
 
 

@@ -3,19 +3,31 @@ const router = express.Router();
 const AnalyticsEvent = require("../../models/analytics");
 const Order = require("../../models/orders");
 const Product = require("../../models/products");
+const mongoose = require("mongoose");
+
 
 router.get("/traffic-sources", async (req, res) => {
     try {
-        const { sellerId, period } = req.query;
+        const { sellerId, period = "all" } = req.query;
+
+        if (!sellerId) {
+            return res.status(400).json({ message: "sellerId is required" });
+        }
 
         const daysMap = { "7days": 7, "30days": 30, "90days": 90 };
         const fromDate =
-            period === "all"
-                ? null
-                : new Date(Date.now() - daysMap[period] * 86400000);
+            period !== "all"
+                ? new Date(Date.now() - daysMap[period] * 86400000)
+                : null;
 
-        const match = { sellerId, type: "view" };
-        if (fromDate) match.createdAt = { $gte: fromDate };
+        const match = {
+            sellerId: new mongoose.Types.ObjectId(sellerId),
+            type: "view",
+        };
+
+        if (fromDate) {
+            match.createdAt = { $gte: fromDate };
+        }
 
         const result = await AnalyticsEvent.aggregate([
             { $match: match },
@@ -25,11 +37,29 @@ router.get("/traffic-sources", async (req, res) => {
                     views: { $sum: 1 },
                 },
             },
+            { $sort: { views: -1 } },
         ]);
 
-        const totalViews = result.reduce((s, r) => s + r.views, 0);
+        // console.log(result);
+
+
+        const totalViews = result.reduce((sum, r) => sum + r.views, 0);
+        // console.log({
+        //     success: true,
+        //     totalViews,
+        //     sources: result.map(r => ({
+        //         source: r._id,
+        //         views: r.views,
+        //         percentage: totalViews
+        //             ? Math.round((r.views / totalViews) * 100)
+        //             : 0,
+        //         conversionRate: Math.floor(Math.random() * 10) + 2, // optional
+        //     }))
+        // })
+
 
         res.json({
+            success: true,
             totalViews,
             sources: result.map(r => ({
                 source: r._id,
@@ -41,11 +71,11 @@ router.get("/traffic-sources", async (req, res) => {
             })),
         });
     } catch (err) {
-        console.log(err);
-        
+        console.error("Traffic source error:", err);
         res.status(500).json({ message: err.message });
     }
 });
+
 
 
 router.get("/conversion-optimization", async (req, res) => {
@@ -57,14 +87,22 @@ router.get("/conversion-optimization", async (req, res) => {
             type: "view",
         });
 
+        console.log(views);
+
+
         const orders = await Order.countDocuments({
             sellerId,
             status: "delivered",
         });
 
+        console.log(orders);
+
+
         const conversionRate = views
             ? +((orders / views) * 100).toFixed(1)
             : 0;
+
+        console.log(conversionRate);
 
         const industryAverage = 8.5;
 
@@ -123,6 +161,8 @@ router.get("/competitor-insights", async (req, res) => {
         const prices = competitors.map(p => p.price);
         const avgPrice =
             prices.reduce((a, b) => a + b, 0) / Math.max(prices.length, 1);
+
+
 
         res.json({
             yourPrice: product.price,

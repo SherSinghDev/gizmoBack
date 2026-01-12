@@ -205,19 +205,19 @@ router.get("/all", async (req, res) => {
 /**
  * GET SINGLE PRODUCT
  */
-router.get("/:id", async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id);
+// router.get("/:id", async (req, res) => {
+//     try {
+//         const product = await Product.findById(req.params.id);
 
-        if (!product)
-            return res.status(404).json({ message: "Product not found" });
+//         if (!product)
+//             return res.status(404).json({ message: "Product not found" });
 
-        res.json(product);
-    } catch (error) {
-        console.error("Get Product Error:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-});
+//         res.json(product);
+//     } catch (error) {
+//         console.error("Get Product Error:", error);
+//         res.status(500).json({ message: "Server error" });
+//     }
+// });
 
 
 // Update
@@ -373,19 +373,57 @@ router.put("/:id/view", async (req, res) => {
 
 
         // when product page is viewed
-        await analytics.create({
+        let ana = await analytics.create({
             sellerId: product.vendorId,
             productId,
             type: "view",
             source: "search" // or direct / ads / share
         });
-
-
+        console.log(ana);
         res.json({ success: true });
     } catch (error) {
         console.error("Track view error:", error);
         res.status(500).json({ success: false });
     }
+});
+
+// GET all analytics events (optionally filtered by seller)
+router.get("/events", async (req, res) => {
+  try {
+    const { sellerId, productId, type, from, to } = req.query;
+
+    const filter = {};
+
+    if (sellerId) filter.sellerId = sellerId;
+    if (productId) filter.productId = productId;
+    if (type) filter.type = type;
+
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from);
+      if (to) filter.createdAt.$lte = new Date(to);
+    }
+
+    const events = await analytics.find()
+    //   .populate("productId", "name price")
+    //   .populate("sellerId", "name email")
+      .sort({ createdAt: -1 });
+
+    // console.log(events);
+    
+
+    res.status(200).json({
+      success: true,
+      count: events.length,
+      data: events,
+    });
+  } catch (error) {
+    console.error("Analytics fetch error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch analytics events",
+    });
+  }
 });
 
 
