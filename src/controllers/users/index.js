@@ -911,6 +911,9 @@ router.post(
                 uploadedAt: new Date(),
             }));
 
+            // console.log(documents);
+
+
             // 🔍 Call PAN / Bank / GST APIs
             const [panResult, bankResult, gstResult] = await Promise.all([
                 panNumber ? verifyPAN(panNumber, fullName) : null,
@@ -948,7 +951,7 @@ router.post(
             let razorpayContactId = user.razorpayContactId;
             let razorpayFundAccountId = user.razorpayFundAccountId;
 
-            console.log('Razorpay', razorpay);
+            // console.log('Razorpay', razorpay);
 
             if (isApproved && !razorpayFundAccountId) {
                 // 1️⃣ Create Contact
@@ -1010,6 +1013,9 @@ router.post(
                 },
                 { new: true }
             );
+
+
+            // console.log(updatedUser);
 
 
 

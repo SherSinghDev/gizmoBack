@@ -23,6 +23,42 @@ function auth(req, res, next) {
     }
 }
 
+/**
+ * Admin / system triggered notification
+ */
+router.post("/send", auth, async (req, res) => {
+    const { userId, title, body, type, data } = req.body;
+
+    if (!userId || !title || !body) {
+        return res.status(400).json({ message: "Missing fields" });
+    }
+
+    await notifyUser({
+        userId,
+        title,
+        body,
+        type,
+        data,
+    });
+
+    res.json({ success: true });
+});
+
+router.post("/demo", auth, async (req, res) => {
+    const userId = req.user.id;
+    console.log(userId);
+    await notifyUser({
+        userId,
+        title: "Welcome 👋",
+        body: "This is a demo push notification",
+        type: "marketing",
+        data: { screen: "Home" },
+    });
+
+    res.json({ success: true });
+});
+
+
 
 
 router.get("/", auth, async (req, res) => {
@@ -123,7 +159,7 @@ router.get("/seller-notificatins", auth, async (req, res) => {
         }
 
         // console.log(settings);
-        
+
 
         res.json(settings);
     } catch (err) {
@@ -146,12 +182,12 @@ router.put("/seller-notificatins", auth, async (req, res) => {
         );
 
         console.log(settings);
-        
+
 
         res.json(settings);
     } catch (err) {
         console.log(err);
-        
+
         res.status(500).json({ message: "Failed to update settings" });
     }
 });
