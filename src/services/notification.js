@@ -30,6 +30,13 @@ async function notifyUser({
 
   if (!tokens.length) return;
 
+  // console.log(tokens, {
+  //   title,
+  //   body,
+  //   data,
+  // });
+  
+
   // Send push
   await sendPushNotification(tokens, {
     title,

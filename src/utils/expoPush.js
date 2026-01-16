@@ -19,15 +19,31 @@ async function sendPushNotification(tokens, payload) {
         data: payload.data || {},
     }));
 
-    const chunks = expo.chunkPushNotifications(messages);
+    // console.log(messages);
+    
 
-    for (const chunk of chunks) {
-        try {
-            await expo.sendPushNotificationsAsync(chunk);
-        } catch (error) {
-            console.error("Expo push error:", error);
-        }
-    }
+    let res = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(messages),
+    });
+
+    let data = await res.json()
+    console.log(data);
+    
+
+    // const chunks = expo.chunkPushNotifications(messages);
+
+    // for (const chunk of chunks) {
+    //     try {
+    //         await expo.sendPushNotificationsAsync(chunk);
+    //     } catch (error) {
+    //         console.error("Expo push error:", error);
+    //     }
+    // }
 }
 
 module.exports = { sendPushNotification };

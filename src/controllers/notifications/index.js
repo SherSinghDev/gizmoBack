@@ -7,6 +7,7 @@ let NotificationSettings = require('../../models/sellernotifications.js')
 let jwt = require("jsonwebtoken");
 let dotenv = require("dotenv")
 dotenv.config()
+let { notifyUser } = require('../../services/notification.js')
 
 
 
@@ -41,21 +42,53 @@ router.post("/send", auth, async (req, res) => {
         data,
     });
 
+    console.log("yes");
+
+
     res.json({ success: true });
 });
 
-router.post("/demo", auth, async (req, res) => {
-    const userId = req.user.id;
-    console.log(userId);
-    await notifyUser({
-        userId,
-        title: "Welcome 👋",
-        body: "This is a demo push notification",
-        type: "marketing",
-        data: { screen: "Home" },
-    });
+// router.post("/demo", auth, async (req, res) => {
+//     const userId = req.user.id;
+//     console.log(userId);
+//     await notifyUser({
+//         userId,
+//         title: "Welcome 👋",
+//         body: "This is a demo push notification",
+//         type: "marketing",
+//         data: { screen: "Home" },
+//     });
 
-    res.json({ success: true });
+//     console.log("yes");
+
+
+//     res.json({ success: true });
+// });
+
+
+router.post("/demo", auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        await notifyUser({
+            userId,
+            title: "Welcome 👋",
+            body: "This is a demo push notification",
+            type: "marketing",
+            data: {
+                screen: "Home",
+                demo: true,
+            },
+        });
+
+        res.json({
+            success: true,
+            message: "Demo push notification sent",
+        });
+    } catch (err) {
+        console.error("Demo push error:", err);
+        res.status(500).json({ success: false });
+    }
 });
 
 
@@ -75,6 +108,67 @@ router.get("/", auth, async (req, res) => {
 
     res.json({ notifications, unreadCount });
 });
+
+
+// router.get("/", auth, async (req, res) => {
+//     const userId = req.user.id;
+
+//     // Mock notifications
+//     const notifications = [
+//         {
+//             _id: "1",
+//             userId,
+//             title: "New Order Received",
+//             body: "You have received a new order #ORD1234",
+//             type: "orders",
+//             data: { orderId: "ORD1234" },
+//             read: false,
+//             createdAt: new Date(Date.now() - 5 * 60 * 1000),
+//         },
+//         {
+//             _id: "2",
+//             userId,
+//             title: "Inventory Low",
+//             body: "Product ABC stock is running low",
+//             type: "inventory",
+//             data: { productId: "ABC" },
+//             read: false,
+//             createdAt: new Date(Date.now() - 30 * 60 * 1000),
+//         },
+//         {
+//             _id: "3",
+//             userId,
+//             title: "New Review",
+//             body: "You received a 5-star review 🎉",
+//             type: "reviews",
+//             data: { rating: 5 },
+//             read: false,
+//             createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+//         },
+//         {
+//             _id: "4",
+//             userId,
+//             title: "Marketing Update",
+//             body: "Your campaign performance report is ready",
+//             type: "marketing",
+//             data: {},
+//             read: false,
+//             createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+//         },
+//     ];
+
+//     // Sort latest first (like MongoDB .sort({ createdAt: -1 }))
+//     notifications.sort((a, b) => b.createdAt - a.createdAt);
+
+//     // Count unread notifications
+//     const unreadCount = notifications.filter(n => !n.read).length;
+
+//     res.json({
+//         notifications,
+//         unreadCount,
+//     });
+// });
+
 
 
 router.put("/read", auth, async (req, res) => {
@@ -137,12 +231,17 @@ router.post("/register-token", auth, async (req, res) => {
     const { token, platform } = req.body;
 
     if (!token) return res.status(400).json({ message: "Token required" });
-
-    await PushToken.findOneAndUpdate(
-        { userId, token },
-        { platform },
-        { upsert: true }
-    );
+    let push = PushToken.findOne({ userId })
+    if (!push) {
+        await PushToken.create({ userId, token, platform });
+    }
+    else {
+        await PushToken.findOneAndUpdate(
+            { userId, token },
+            { platform },
+            { upsert: true }
+        );
+    }
     res.json({ success: true });
 });
 
