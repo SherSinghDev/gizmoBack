@@ -229,7 +229,7 @@ router.put("/preferences", auth, async (req, res) => {
 router.post("/register-token", auth, async (req, res) => {
     const userId = req.user.id;
     const { token, platform } = req.body;
-    console.log(token);
+    console.log("body",req.body);
     
     if (!token) return res.status(400).json({ message: "Token required" });
     let push = PushToken.findOne({ userId })
