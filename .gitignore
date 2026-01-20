@@ -7,7 +7,7 @@ Desktop.ini
 build/
 dist/
 target/
-assets/uploads
+# assets/uploads
 src/controllers/notifications/serviceAccountKey.json
 *.o
 *.a
