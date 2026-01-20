@@ -245,6 +245,7 @@ router.post("/register-token", auth, async (req, res) => {
     try {
         const { token, platform } = req.body;
         const userId = req.user.id; // Auth middleware से यूजर ID
+        
 
         if (!token) {
             return res.status(400).json({ message: "Token is required" });
