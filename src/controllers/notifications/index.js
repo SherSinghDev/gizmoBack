@@ -8,6 +8,7 @@ let jwt = require("jsonwebtoken");
 let dotenv = require("dotenv")
 dotenv.config()
 let { notifyUser } = require('../../services/notification.js')
+const admin = require("firebase-admin");
 
 
 
@@ -226,25 +227,102 @@ router.put("/preferences", auth, async (req, res) => {
     res.json(prefs);
 });
 
+
+
+
+// 1. Firebase Admin Initialize करें (यह फाइल के ऊपर या अलग config फाइल में होना चाहिए)
+// ध्यान दें: serviceAccountKey.json का सही पथ दें
+const serviceAccount = require("./serviceAccountKey.json");
+
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+    });
+}
+
+
 router.post("/register-token", auth, async (req, res) => {
-    const userId = req.user.id;
-    const { token, platform } = req.body;
-    console.log("body",req.body);
-    
-    if (!token) return res.status(400).json({ message: "Token required" });
-    let push = PushToken.findOne({ userId })
-    if (!push) {
-        await PushToken.create({ userId, token, platform });
+    try {
+        const { token, platform } = req.body;
+        const userId = req.user.id; // Auth middleware से यूजर ID
+
+        if (!token) {
+            return res.status(400).json({ message: "Token is required" });
+        }
+
+        console.log(`📲 Registering token for user ${userId}:`, token);
+
+        // 1. डेटाबेस में टोकन सेव करें (ताकि बाद में भी नोटिफिकेशन भेज सकें)
+        // यह मानकर कि आपके User मॉडल में 'fcmToken' फील्ड है
+        // await User.findByIdAndUpdate(userId, {
+        //     fcmToken: token,
+        //     platform: platform // android/ios
+        // });
+
+        let push = PushToken.findOne({ userId })
+        if (!push) {
+            await PushToken.create({ userId, token, platform });
+        }
+        else {
+            await PushToken.findOneAndUpdate(
+                { userId, token },
+                { platform },
+                { upsert: true }
+            );
+        }
+
+        // 2. तुरंत एक Dummy Notification भेजें (Testing के लिए)
+        const message = {
+            notification: {
+                title: "Hello from UsedGizmo! 👋",
+                body: "यह एक टेस्ट नोटिफिकेशन है यह चेक करने के लिए कि आपका सेटअप काम कर रहा है।",
+            },
+            // अगर आप कस्टम डेटा भेजना चाहते हैं:
+            data: {
+                screen: "Profile",
+                someId: "12345",
+            },
+            token: token, // यह वही devicePushToken है जो फ्रंटएंड से आया है
+        };
+
+        // Firebase Admin से भेजें
+        const response = await admin.messaging().send(message);
+
+
+        console.log("✅ Successfully sent test notification:", response);
+
+        return res.status(200).json({
+            success: true,
+            message: "Token registered and test notification sent!",
+            messageId: response
+        });
+
+    } catch (error) {
+        console.error("❌ Error sending notification:", error);
+        // अगर टोकन एक्सपायर या गलत है, तो Firebase error देगा
+        return res.status(500).json({ error: error.message });
     }
-    else {
-        await PushToken.findOneAndUpdate(
-            { userId, token },
-            { platform },
-            { upsert: true }
-        );
-    }
-    res.json({ success: true });
 });
+
+// router.post("/register-token", auth, async (req, res) => {
+//     const userId = req.user.id;
+//     const { token, platform } = req.body;
+//     console.log("body", req.body);
+
+//     if (!token) return res.status(400).json({ message: "Token required" });
+//     let push = PushToken.findOne({ userId })
+//     if (!push) {
+//         await PushToken.create({ userId, token, platform });
+//     }
+//     else {
+//         await PushToken.findOneAndUpdate(
+//             { userId, token },
+//             { platform },
+//             { upsert: true }
+//         );
+//     }
+//     res.json({ success: true });
+// });
 
 
 router.get("/seller-notificatins", auth, async (req, res) => {
